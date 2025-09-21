@@ -21,11 +21,14 @@ pip install -r requirements.txt
 # Performance
 
 
-表头  | 表头  | 表头
+Model  | Test Size  | #Params | mAP50(%)
  ---- | ----- | ------  
- 单元格内容  | 单元格内容 | 单元格内容 
- 单元格内容  | 单元格内容 | 单元格内容 
-
+ Faster R-CNN  | 640 | 165  | 78.4
+ YOLOv5m       | 640 | 25.1 | 83.5
+ YOLOv8m       | 640 | 25.8 | 83.9
+ YOLOv10m      | 640 | 16.5 | 83.3
+ RT-DETR-r18   | 640 | 19.9 | 83.8
+ ESA-DETR (ours)| 640 | **15.1** | **86.2**
 
 
 # Training
