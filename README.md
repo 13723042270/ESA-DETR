@@ -22,7 +22,7 @@ pip install -r requirements.txt
 
 
 Model  | Test Size  | #Params | mAP50(%)
- ---- | ----- | ------  
+ ---- | ----- | ------  | -------
  Faster R-CNN  | 640 | 165  | 78.4
  YOLOv5m       | 640 | 25.1 | 83.5
  YOLOv8m       | 640 | 25.8 | 83.9
