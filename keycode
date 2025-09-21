@@ -1,1 +1,112 @@
+class ESE(nn.Module):
+    def __init__(self, in_dim):
+        super().__init__()
+        self.out_conv = Conv(in_dim, in_dim, act=nn.Sigmoid())
+        self.pool = nn.AvgPool2d(3, stride= 1, padding = 1)
+    
+    def forward(self, x):
+        edge = self.pool(x)
+        edge = x - edge
+        edge = self.out_conv(edge)
+        return x + edge
+
+class EFBlock(nn.Module):
+    def __init__(self, inc, bins):
+        super().__init__()        
+        self.features = []
+        for bin in bins:
+            self.features.append(nn.Sequential(
+                nn.AdaptiveAvgPool2d(bin),
+                Conv(inc, inc // len(bins), 1),
+                Conv(inc // len(bins), inc // len(bins), 3, g=inc // len(bins))
+            ))
+        self.ees = []
+        for _ in bins:
+            self.ees.append(ESE(inc // len(bins)))
+        self.features = nn.ModuleList(self.features)
+        self.ees = nn.ModuleList(self.ees)
+        self.local_conv = Conv(inc, inc, 3)
+        self.final_conv = Conv(inc * 2, inc)   
+    def forward(self, x):
+        x_size = x.size()
+        out = [self.local_conv(x)]
+        for idx, f in enumerate(self.features):
+            out.append(self.ees[idx](F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True)))
+        return self.final_conv(torch.cat(out, 1))
+class EFB(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(EFBlock(self.c, [3, 6, 9, 12]) for _ in range(n))
+
+
+class SEFF(nn.Module):
+    def __init__(self, inc, dim, reduction=8):
+        super().__init__()
+        self.height = len(inc)
+        d = max(int(dim / reduction), 4)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+        self.mlp = nn.Sequential(
+            nn.Conv2d(dim, d, 1, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(d, dim * self.height, 1, bias=False),
+        )
+        self.softmax = nn.Softmax(dim=2)
+        self.spatial_attn = nn.Sequential(
+            nn.Conv2d(dim, dim, 3, padding=1, groups=dim, bias=False),
+            nn.Sigmoid()
+        )
+        self.conv1x1 = nn.ModuleList([
+            Conv(i, dim, 1) if i != dim else nn.Identity()
+            for i in inc
+        ])
+        self.use_residual = True
+
+    def forward(self, in_feats_):
+        B, C, H, W = in_feats_[0].shape
+        in_feats = [conv(x) for conv, x in zip(self.conv1x1, in_feats_)]
+        x_cat = torch.cat(in_feats, dim=1)
+        x_view = x_cat.view(B, self.height, C, H, W)
+        feats_sum = torch.sum(x_view, dim=1)
+        pooled = self.avg_pool(feats_sum) + self.max_pool(feats_sum)
+        attn = self.mlp(pooled).view(B, self.height, C, 1, 1)
+        attn = self.softmax(attn)
+        out = torch.sum(x_view * attn, dim=1)
+        spatial_weight = self.spatial_attn(feats_sum)
+        out = out * spatial_weight
+
+        if self.use_residual:
+            out = out + feats_sum
+        return out
+
+class ASFI(nn.Module):
+    """Defines a single layer of the transformer encoder."""
+    def __init__(self, c1, cm=2048, num_heads=8, dropout=0.0, act=nn.GELU(), normalize_before=False):
+        """Initialize the TransformerEncoderLayer with specified parameters."""
+        super().__init__()
+        self.assa = AdaptiveSparseSA(c1, num_heads=num_heads, sparseAtt=True)
+        # Implementation of Feedforward model
+        self.fc1 = nn.Conv2d(c1, cm, 1)
+        self.fc2 = nn.Conv2d(cm, c1, 1)
+        self.norm1 = LayerNorm(c1)
+        self.norm2 = LayerNorm(c1)
+        self.dropout = nn.Dropout(dropout)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+        self.act = act
+        self.normalize_before = normalize_before
+
+    def forward_post(self, src, src_mask=None, src_key_padding_mask=None, pos=None):
+        """Performs forward pass with post-normalization."""
+        BS, C, H, W = src.size()
+        src2 = self.assa(src).permute(0, 2, 1).view([-1, C, H, W]).contiguous()
+        src = src + self.dropout1(src2)
+        src = self.norm1(src)
+        src2 = self.fc2(self.dropout(self.act(self.fc1(src))))
+        src = src + self.dropout2(src2)
+        return self.norm2(src)
+    def forward(self, src, src_mask=None, src_key_padding_mask=None, pos=None):
+        """Forward propagates the input through the encoder module."""
+        return self.forward_post(src, src_mask, src_key_padding_mask, pos)
+
 
