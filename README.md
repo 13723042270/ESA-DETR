@@ -12,6 +12,20 @@ TT100K(http://cg.cs.tsinghua.edu.cn/traffic-sign)
 
 # Installation
 
-`conda create -n ESADETR python=3.10 `  
-`conda activate ESADETR `  
+```python
+conda create -n ESADETR python=3.10   
+conda activate ESADETR ```  
 `pip install -r requirements.txt`
+
+# Performance
+
+# Training
+`python train.py`
+# Validation
+`python val.py`
+# Testing
+`python test.py`
+# Acknowledgement
+The code base is built with [ultralytics].
+Thanks for the great implementations!
+
