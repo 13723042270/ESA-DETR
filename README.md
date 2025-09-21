@@ -14,8 +14,9 @@ TT100K(http://cg.cs.tsinghua.edu.cn/traffic-sign)
 
 ```python
 conda create -n ESADETR python=3.10   
-conda activate ESADETR ```  
-`pip install -r requirements.txt`
+conda activate ESADETR 
+pip install -r requirements.txt
+```
 
 # Performance
 
