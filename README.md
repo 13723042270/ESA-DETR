@@ -1,6 +1,6 @@
 # Enhanced Small Traffic Sign Detection under Adverse Weather: The ESA-DETR Algorithm.
 Official PyTorch implementation of ESA-DETR.
-[Enhanced Small Traffic Sign Detection under Adverse Weather: The ESA-DETR Algorithm] Qiang Li, Jinxia Yu, Jie Wu, Mingfu Zhu and Yang Chen
+[Enhanced Small Traffic Sign Detection under Adverse Weather: The ESA-DETR Algorithm] The Visual Computer, Qiang Li, Jinxia Yu, Jie Wu, Mingfu Zhu and Yang Chen
 
 <details>
   <summary>Abstract</summary>
