@@ -10,6 +10,9 @@ Official PyTorch implementation of ESA-DETR.
 # DataSets
 TT100K(http://cg.cs.tsinghua.edu.cn/traffic-sign)
 
+# Data augmentation
+`aug_date.py`
+
 # Installation
 
 ```python
